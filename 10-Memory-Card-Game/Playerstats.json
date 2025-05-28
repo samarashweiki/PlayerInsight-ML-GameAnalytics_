@@ -1,0 +1,16 @@
+[
+  {
+    "playerId": 1,
+    "moves": 30,
+    "timeTaken": 45,
+    "success": 1,
+    "sessionTime": "2025-05-28T21:05:57.239Z"
+  },
+  {
+    "playerId": 2,
+    "moves": 55,
+    "timeTaken": 70,
+    "success": 0,
+    "sessionTime": "2025-05-28T21:05:57.239Z"
+  }
+]

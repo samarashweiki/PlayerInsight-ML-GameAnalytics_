@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8" />
+<title>لوحة تحكم لعبة الذاكرة</title>
+<style>
+  body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background-color: #f2f2f2; }
+  button { padding: 10px 15px; font-size: 16px; cursor: pointer; }
+  #stats { margin-bottom: 20px; }
+  canvas { max-width: 100%; height: 300px; }
+</style>
+</head>
+<body>
+
+<h2>لوحة تحكم لعبة الذاكرة</h2>
+
+<div id="stats">
+  <p>عدد اللاعبين: <span id="player-count">0</span></p>
+  <p>متوسط الحركات: <span id="avg-moves">0</span></p>
+  <p>متوسط الوقت (ثواني): <span id="avg-time">0</span></p>
+</div>
+
+<button id="download-btn">تنزيل بيانات JSON كاملة</button>
+
+<h3>قائمة اللاعبين المسجلة:</h3>
+<table id="players-table">
+  <thead>
+    <tr>
+      <th>رقم اللاعب</th>
+      <th>عدد الحركات</th>
+      <th>الوقت (ثواني)</th>
+      <th>نجاح</th>
+      <th>وقت الجلسة</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<h3>رسم بياني لحركات اللاعبين ووقتهم</h3>
+<canvas id="chart"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  function loadPlayerData() {
+    // جلب كل بيانات اللاعبين من localStorage
+    let data = JSON.parse(localStorage.getItem("playerStats")) || [];
+    return data;
+  }
+
+  function updateDashboard() {
+    const data = loadPlayerData();
+
+    // تحديث عدد اللاعبين
+    document.getElementById("player-count").textContent = data.length;
+
+    // حساب المتوسطات
+    const avgMoves = data.length ? (data.reduce((a,b) => a + b.moves, 0) / data.length).toFixed(2) : 0;
+    const avgTime = data.length ? (data.reduce((a,b) => a + b.timeTaken, 0) / data.length).toFixed(2) : 0;
+
+    document.getElementById("avg-moves").textContent = avgMoves;
+    document.getElementById("avg-time").textContent = avgTime;
+
+    // تحديث جدول اللاعبين
+    const tbody = document.querySelector("#players-table tbody");
+    tbody.innerHTML = "";
+    data.forEach((player, idx) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${player.playerId}</td>
+        <td>${player.moves}</td>
+        <td>${player.timeTaken}</td>
+        <td>${player.success}</td>
+        <td>${new Date(player.sessionTime).toLocaleString("ar-EG")}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // رسم بياني
+    renderChart(data);
+  }
+
+  let chartInstance = null;
+  function renderChart(data) {
+    const ctx = document.getElementById("chart").getContext("2d");
+
+    // ترتيب بيانات الرسم
+    const labels = data.map(p => `لاعب ${p.playerId}`);
+    const movesData = data.map(p => p.moves);
+    const timeData = data.map(p => p.timeTaken);
+
+    if(chartInstance) {
+      chartInstance.destroy();
+    }
+
+    chartInstance = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "عدد الحركات",
+            data: movesData,
+            backgroundColor: "rgba(54, 162, 235, 0.7)"
+          },
+          {
+            label: "الوقت (ثواني)",
+            data: timeData,
+            backgroundColor: "rgba(255, 99, 132, 0.7)"
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: "القيمة" }
+          }
+        },
+        plugins: {
+          legend: { position: "top" },
+          title: {
+            display: true,
+            text: "رسم بياني لحركات اللاعبين ووقتهم"
+          }
+        }
+      }
+    });
+  }
+
+  // زر تنزيل ملف JSON
+  document.getElementById("download-btn").addEventListener("click", () => {
+    const data = loadPlayerData();
+    if(data.length === 0) {
+      alert("لا توجد بيانات للتحميل!");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "PlayerStats.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  updateDashboard();  // تفعيل التحديث فوراً عند تحميل الصفحة
+</script>
+
+</body>
+</html>
